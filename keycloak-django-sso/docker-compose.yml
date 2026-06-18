@@ -48,6 +48,7 @@ services:
 
   d1:
     build: ./d1
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./d1:/app
     environment:
@@ -78,6 +79,7 @@ services:
 
   d2:
     build: ./d2
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./d2:/app
     environment:

@@ -1,85 +1,47 @@
 # Data Model: Group-Based Access Control
 
-**Date**: 2026-06-17
+**Date**: 2026-06-17 | **Updated**: 2026-06-18
 **Feature**: `002-group-access-control`
 
 ## No New Django Models
 
-This feature introduces no new database models. It relies entirely on Django's existing built-in models from `django.contrib.auth`:
+This feature uses Django's built-in `django.contrib.auth` models — no new tables required:
 
-- `auth_group` — stores group names (e.g., `d1:rrhh`, `d2:admin`)
+- `auth_group` — stores group names (e.g., `d1:rrhh`, `admin:data`)
 - `auth_user_groups` — M:N junction between users and groups
-- `auth_user` — the existing Django user (no changes)
-
-Both tables already exist in `d1_db` and `d2_db` because `django.contrib.auth` is in `INSTALLED_APPS` and migrations have already run.
-
----
-
-## Existing Model Used: `django.contrib.auth.models.Group`
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | AutoField (PK) | Auto-generated |
-| `name` | CharField(150), unique | e.g., `d1:rrhh`, `d2:admin` |
-
-**Access via ORM**:
-```python
-# Check if user has any required group
-user.groups.filter(name__in=['d1:rrhh', 'd1:admin']).exists()
-
-# Set user's D1 groups (replaces all, handles removals)
-d1_groups = Group.objects.filter(name__startswith='d1:')
-user.groups.set(d1_groups)
-```
+- `auth_user` — existing Django user (unchanged)
 
 ---
 
 ## Group Sync Behavior
 
-On every successful OIDC login, the backend:
+On every successful OIDC login:
 
-1. Reads `claims['groups']` from the JWT (list of strings, e.g., `["d1:worker", "d2:viewer"]`)
-2. Filters to the current app's prefix (`d1:*` in D1, `d2:*` in D2)
-3. For each filtered group name: `get_or_create(name=group_name)` on `auth.Group`
-4. Calls `user.groups.set(django_groups)` — atomically replaces the user's group membership
+1. Reads `claims['groups']` from the JWT
+2. Filters to the current app's prefixes:
+   - **D1**: keeps `d1:*` and `admin:*`
+   - **D2**: keeps `d2:*` and `admin:*`
+3. `get_or_create` each as `auth.Group`
+4. `user.groups.set(django_groups)` — atomically replaces membership
 
-**Removal handling**: `set()` removes any previously held groups not in the new list. If a user is removed from `d1:rrhh` in Keycloak, their next login clears `d1:rrhh` from `auth_user_groups`.
-
-**Cross-app isolation**: D1 only touches groups starting with `d1:`. It never reads, creates, or removes `d2:*` groups. The same applies in reverse for D2.
+**Cross-app isolation**: D1 never touches `d2:*` groups; D2 never touches `d1:*` groups. Both apps sync `admin:*` groups.
 
 ---
 
 ## Keycloak Groups (source of truth)
 
-Six new flat groups added to `realm-export.json`:
-
-| Group name | App | Access |
-|------------|-----|--------|
-| `d1:rrhh` | D1 | `/rrhh/`, `/home/` |
-| `d1:worker` | D1 | `/worker/`, `/home/` |
-| `d1:admin` | D1 | `/rrhh/`, `/worker/`, `/admin/`, `/home/` |
-| `d2:viewer` | D2 | `/reports/` |
-| `d2:editor` | D2 | `/reports/`, `/editor/` |
-| `d2:admin` | D2 | `/reports/`, `/editor/`, `/admin/` |
-
-**Format in realm-export.json**:
-```json
-"groups": [
-  { "name": "team-a", "path": "/team-a", "subGroups": [] },
-  { "name": "ops",    "path": "/ops",    "subGroups": [] },
-  { "name": "d1:rrhh",   "path": "/d1:rrhh",   "subGroups": [] },
-  { "name": "d1:worker", "path": "/d1:worker", "subGroups": [] },
-  { "name": "d1:admin",  "path": "/d1:admin",  "subGroups": [] },
-  { "name": "d2:viewer", "path": "/d2:viewer", "subGroups": [] },
-  { "name": "d2:editor", "path": "/d2:editor", "subGroups": [] },
-  { "name": "d2:admin",  "path": "/d2:admin",  "subGroups": [] }
-]
-```
-
-**JWT claim** (mapper already configured, `full.path: false`):
-```json
-"groups": ["d1:worker", "d2:viewer"]
-```
+| Group name   | Prefix   | Apps that sync | Routes granted |
+|--------------|----------|----------------|----------------|
+| `d1:rrhh`    | d1:      | D1             | `/rrhh/`, `/home/` |
+| `d1:worker`  | d1:      | D1             | `/worker/`, `/home/` |
+| `d1:data`    | d1:      | D1             | `/data/`, `/home/` |
+| `d1:admin`   | d1:      | D1             | all D1 routes |
+| `d2:viewer`  | d2:      | D2             | *(legacy — no routes)* |
+| `d2:report`  | d2:      | D2             | `/reports/` |
+| `d2:editor`  | d2:      | D2             | `/editor/` |
+| `d2:data`    | d2:      | D2             | `/data/` |
+| `d2:admin`   | d2:      | D2             | all D2 routes |
+| `admin:data` | admin:   | D1 + D2        | `/data/` in both apps |
 
 ---
 
@@ -87,31 +49,89 @@ Six new flat groups added to `realm-export.json`:
 
 ### D1
 
-| URL pattern | Required groups (any one) | View class |
-|-------------|--------------------------|------------|
-| `/home/` | `d1:rrhh`, `d1:worker`, `d1:admin` | `D1HomeView` |
-| `/rrhh/` | `d1:rrhh`, `d1:admin` | `RRHHView` |
-| `/worker/` | `d1:worker`, `d1:admin` | `WorkerView` |
-| `/admin/` | `d1:admin` | `D1AdminView` |
-| `/access-denied/` | none (unauthenticated OK) | `GroupAccessDeniedView` |
+| URL          | Required groups (any one)                  | View class           |
+|--------------|--------------------------------------------|----------------------|
+| `/home/`     | `d1:rrhh`, `d1:worker`, `d1:data`, `d1:admin` | `D1HomeView`      |
+| `/rrhh/`     | `d1:rrhh`, `d1:admin`                      | `RRHHView`           |
+| `/worker/`   | `d1:worker`, `d1:admin`                    | `WorkerView`         |
+| `/data/`     | `d1:data`, `d1:admin`, `admin:data`        | `DataView`           |
+| `/admin/`    | `d1:admin`                                 | `D1AdminView`        |
+| `/access-denied/` | none                                  | `GroupAccessDeniedView` |
 
 ### D2
 
-| URL pattern | Required groups (any one) | Also requires scope | View class |
-|-------------|--------------------------|---------------------|------------|
-| `/reports/` | `d2:viewer`, `d2:editor`, `d2:admin` | `read:reports` | `ReportsView` |
-| `/editor/` | `d2:editor`, `d2:admin` | none | `EditorView` |
-| `/admin/` | `d2:admin` | none | `D2AdminView` |
-| `/group-denied/` | none | none | `GroupAccessDeniedView` |
+| URL           | Required groups (any one)                  | View class              |
+|---------------|--------------------------------------------|-------------------------|
+| `/reports/`   | `d2:report`                                | `ReportsView`           |
+| `/editor/`    | `d2:editor`, `d2:admin`                    | `EditorView`            |
+| `/data/`      | `d2:data`, `d2:admin`, `admin:data`        | `DataView`              |
+| `/admin/`     | `d2:admin`                                 | `D2AdminView`           |
+| `/group-denied/` | none                                    | `GroupAccessDeniedView` |
 
 ---
 
-## Test User Group Assignments in Realm Export
+## Keycloak Client Roles (App-Level Access Control)
 
-| User | Keycloak groups | Effective D1 groups | Effective D2 groups |
-|------|----------------|---------------------|---------------------|
-| `testadmin` | `d1:admin`, `d2:admin`, `ops` | `d1:admin` | `d2:admin` |
-| `testuser` | `d1:worker`, `d2:viewer`, `team-a` | `d1:worker` | `d2:viewer` |
+Each Keycloak client has a `can-login` client role. This is enforced in a **custom Authentication Flow** — users without this role cannot complete login to that app.
 
-`testadmin` can access all group-protected pages in both apps.
-`testuser` can access `/home/` and `/worker/` in D1 (not `/rrhh/` or `/admin/`), and `/reports/` in D2 (not `/editor/` or `/admin/`).
+| Client      | Role        | Effect |
+|-------------|-------------|--------|
+| `d1-client` | `can-login` | Required to log into D1 |
+| `d2-client` | `can-login` | Required to log into D2 |
+
+The custom auth flow structure:
+```
+[REQUIRED] auth-methods-wrapper
+    ├── [ALTERNATIVE] Cookie
+    ├── [ALTERNATIVE] IDP Redirector
+    └── [ALTERNATIVE] Forms
+[CONDITIONAL] role-check
+    ├── [REQUIRED] Condition - User Role (negate=true, role=client.can-login)
+    └── [REQUIRED] Deny Access (provider: deny-access-authenticator)
+```
+
+---
+
+## Admin Panel API
+
+The `d1-client` service account has these `realm-management` roles to support the admin panel:
+
+| Role           | Purpose |
+|----------------|---------|
+| `view-users`   | List users |
+| `manage-users` | Create users, list groups |
+| `view-clients` | List clients for role lookup |
+| `view-realm`   | List realm roles |
+| `query-clients`| Query client by ID |
+| `query-realms` | Query realm metadata |
+| `query-groups` | Query groups |
+
+New admin panel API endpoints:
+
+| Endpoint            | Method | Purpose |
+|---------------------|--------|---------|
+| `GET /api/users/`   | GET    | List all Keycloak users |
+| `POST /api/users/create/` | POST | Create user with password |
+| `POST /api/users/<sub>/roles/assign/` | POST | Assign realm or client role |
+| `POST /api/users/<sub>/groups/assign/` | POST | Assign group |
+| `POST /api/users/<sub>/deactivate/` | POST | Disable user |
+| `GET /api/roles/`   | GET    | List assignable roles (realm + d1-client + d2-client) |
+| `GET /api/groups/`  | GET    | List all Keycloak groups alphabetically |
+
+---
+
+## Test Users
+
+| Username          | Keycloak groups     | D1 login | D2 login | D1 Django groups           | D2 Django groups    |
+|-------------------|---------------------|----------|----------|----------------------------|---------------------|
+| `testadmin`       | `d1:admin`, `d2:admin`, `ops` | ✅ | ✅ | `d1:admin` | `d2:admin` |
+| `testuser`        | `d1:worker`, `d2:viewer`, `team-a` | ✅ | ✅ | `d1:worker` | *(none — d2:viewer grants nothing)* |
+| `d1_user_rrhh`    | `d1:rrhh`           | ✅       | ❌       | `d1:rrhh`                  | —                   |
+| `d1_user_worker`  | `d1:worker`         | ✅       | ❌       | `d1:worker`                | —                   |
+| `d1_user_data`    | `d1:data`           | ✅       | ❌       | `d1:data`                  | —                   |
+| `d2_user_report`  | `d2:report`         | ❌       | ✅       | —                          | `d2:report`         |
+| `d2_user_data`    | `d2:data`           | ❌       | ✅       | —                          | `d2:data`           |
+| `d2_user_editor`  | `d2:editor`         | ❌       | ✅       | —                          | `d2:editor`         |
+| `user_admin_data` | `admin:data`        | ✅       | ✅       | `admin:data`               | `admin:data`        |
+
+✅/❌ in login columns reflects whether the user has `can-login` client role for that app.

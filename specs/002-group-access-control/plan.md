@@ -1,12 +1,12 @@
 # Implementation Plan: Group-Based Access Control
 
-**Branch**: `002-group-access-control` | **Date**: 2026-06-17 | **Spec**: [spec.md](spec.md)
+**Branch**: `002-group-access-control` | **Date**: 2026-06-17 | **Updated**: 2026-06-18 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/002-group-access-control/spec.md`
 
 ## Summary
 
-Add group-based access control to D1 and D2. Keycloak is extended with six flat application-specific groups (`d1:rrhh`, `d1:worker`, `d1:admin`, `d2:viewer`, `d2:editor`, `d2:admin`). On each OIDC login, each application's backend reads the `groups` JWT claim, filters to its own prefix, and syncs those groups to Django's built-in `auth.Group` membership. A new `require_groups(allowed_groups)` decorator enforces OR-logic group access on views, redirecting unauthorized users to a dedicated access-denied page.
+Add group-based access control to D1 and D2. Keycloak is extended with ten flat application-specific groups (`d1:rrhh`, `d1:worker`, `d1:data`, `d1:admin`, `d2:viewer`, `d2:report`, `d2:editor`, `d2:data`, `d2:admin`, `admin:data`). On each OIDC login, each application's backend reads the `groups` JWT claim, filters to its own prefixes (`d1:*`+`admin:*` for D1, `d2:*`+`admin:*` for D2), and syncs those groups to Django's built-in `auth.Group` membership. A `require_groups(allowed_groups)` decorator enforces OR-logic group access on views. App-level access (which users can log into which app) is controlled via Keycloak Client Roles (`can-login`) enforced in a custom Keycloak Authentication Flow — not in Django.
 
 ## Technical Context
 
@@ -89,69 +89,88 @@ d2/
     └── group_access_denied.html ← new (group denial page, separate from scope denial)
 ```
 
-### Existing routes preserved
+### Complete Route Inventory
 
-| App | Existing routes | Status |
-|-----|----------------|--------|
-| D1 | `/` → HomeView (no auth) | Kept as-is |
-| D1 | `/dashboard/` → DashboardView (login required) | Kept as-is |
-| D1 | `/admin-panel/` → AdminPanelView (login required) | Kept as-is |
-| D2 | `/` → HomeView (login required) | Kept as-is |
-| D2 | `/reports/` → ReportsView (scope: read:reports) | Gets group decorator added |
-| D2 | `/data/` → DataView (scope: write:data) | Kept as-is (scope-only, no group control per spec) |
+| App | Route | Groups required | Status |
+|-----|-------|-----------------|--------|
+| D1 | `/` | none | unchanged |
+| D1 | `/dashboard/` | login only | unchanged |
+| D1 | `/home/` | `d1:rrhh\|d1:worker\|d1:data\|d1:admin` | ✅ implemented |
+| D1 | `/rrhh/` | `d1:rrhh\|d1:admin` | ✅ implemented |
+| D1 | `/worker/` | `d1:worker\|d1:admin` | ✅ implemented |
+| D1 | `/data/` | `d1:data\|d1:admin\|admin:data` | ✅ implemented |
+| D1 | `/admin/` | `d1:admin` | ✅ implemented |
+| D1 | `/admin-panel/` | login only | ✅ enhanced (see Phase F) |
+| D1 | `/access-denied/` | none | ✅ implemented |
+| D2 | `/reports/` | `d2:report` | ✅ implemented |
+| D2 | `/editor/` | `d2:editor\|d2:admin` | ✅ implemented |
+| D2 | `/data/` | `d2:data\|d2:admin\|admin:data` | ✅ implemented |
+| D2 | `/admin/` | `d2:admin` | ✅ implemented |
+| D2 | `/group-denied/` | none | ✅ implemented |
 
 ## Implementation Phases
 
-### Phase A — Keycloak
+### Phase A — Keycloak Groups & Users ✅
 
-1. Add 6 flat groups to `keycloak/realm-export.json`
-2. Assign test users to groups: `testadmin` → `d1:admin` + `d2:admin`; `testuser` → `d1:worker` + `d2:viewer`
-3. Verify group mapper already exists in both clients (confirmed: `groups` mapper present)
+1. Added 10 flat groups to `keycloak/realm-export.json`: `d1:rrhh`, `d1:worker`, `d1:data`, `d1:admin`, `d2:viewer`, `d2:report`, `d2:editor`, `d2:data`, `d2:admin`, `admin:data`
+2. Added 7 dedicated test users: `d1_user_rrhh`, `d1_user_worker`, `d1_user_data`, `d2_user_report`, `d2_user_data`, `d2_user_editor`, `user_admin_data`
 
-### Phase B — D1 Backend & Decorator
+### Phase B — D1 Backend & Decorator ✅
 
-1. Extend `d1/accounts/backends.py → update_user()`:
-   - Filter `claims['groups']` to `d1:*` prefixed entries
-   - `get_or_create` each as Django `auth.Group`
-   - Call `user.groups.set(django_groups)` (replaces, handles removals)
-2. Create `d1/accounts/decorators.py` with `require_groups(allowed_groups)`:
-   - If not authenticated → redirect to `LOGIN_URL`
-   - If authenticated but `user.groups.filter(name__in=allowed_groups).exists()` is False → redirect to `/access-denied/?required=<comma-joined-groups>`
-   - Otherwise → call the view
+1. `d1/accounts/backends.py → update_user()`: filters `claims['groups']` to `d1:*` and `admin:*`, syncs to `auth.Group` via `user.groups.set()`
+2. `d1/accounts/decorators.py`: `require_groups(allowed_groups)` — OR logic, redirects to `/access-denied/?required=...`
 
-### Phase C — D1 Views & Templates
+### Phase C — D1 Views & Templates ✅
 
-1. Add to `d1/dashboard/views.py`:
-   - `D1HomeView` (LoginRequiredMixin + `require_groups(['d1:rrhh','d1:worker','d1:admin'])`)
-   - `RRHHView` (`require_groups(['d1:rrhh','d1:admin'])`)
-   - `WorkerView` (`require_groups(['d1:worker','d1:admin'])`)
-   - `D1AdminView` (`require_groups(['d1:admin'])`)
-   - `GroupAccessDeniedView` (unauthenticated, reads `?required=` param)
-2. Add URL patterns to `d1/dashboard/urls.py`:
-   - `/home/`, `/rrhh/`, `/worker/`, `/admin/` (app-level, not Django admin), `/access-denied/`
-3. Create 5 templates
+- `D1HomeView`: `require_groups(['d1:rrhh','d1:worker','d1:data','d1:admin'])`
+- `RRHHView`: `require_groups(['d1:rrhh','d1:admin'])`
+- `WorkerView`: `require_groups(['d1:worker','d1:admin'])`
+- `DataView`: `require_groups(['d1:data','d1:admin','admin:data'])`
+- `D1AdminView`: `require_groups(['d1:admin'])`
+- `GroupAccessDeniedView`: reads `?required=`, renders list
 
-### Phase D — D2 Backend, Decorator & Views
+### Phase D — D2 Backend, Decorator & Views ✅
 
-1. Extend `d2/accounts/backends.py → update_user()` and `create_user()`:
-   - Same pattern as D1 but filter to `d2:*` groups
-2. Add `require_groups(allowed_groups)` to `d2/accounts/decorators.py` (alongside `require_scope`)
-3. Update `d2/portal/views.py`:
-   - `ReportsView`: add `require_groups(['d2:viewer','d2:editor','d2:admin'])` on top of existing `require_scope`
-   - Add `EditorView` with `require_groups(['d2:editor','d2:admin'])`
-   - Add `D2AdminView` with `require_groups(['d2:admin'])`
-   - Add `GroupAccessDeniedView`
-4. Add `/editor/`, `/admin/`, `/group-denied/` to `d2/portal/urls.py`
-5. Create 3 new templates
+1. `d2/accounts/backends.py`: filters to `d2:*` and `admin:*`
+2. `ReportsView`: `require_groups(['d2:report'])` — NOTE: changed from `d2:viewer` to `d2:report`
+3. `EditorView`: `require_groups(['d2:editor','d2:admin'])`
+4. `DataView`: `require_groups(['d2:data','d2:admin','admin:data'])`
+5. `D2AdminView`: `require_groups(['d2:admin'])`
 
-### Phase E — Tests
+### Phase E — App-Level Access Control via Keycloak Auth Flows ✅
 
-Each new view needs at minimum:
-- Authenticated user with correct group → 200
-- Authenticated user without correct group → redirect to access-denied
-- Unauthenticated user → redirect to login
+Each Keycloak client (`d1-client`, `d2-client`) has a `can-login` client role. Custom auth flows enforce this role before token issuance.
 
-Backend tests:
-- `update_user()` with groups in claims → `auth.Group` membership set
-- `update_user()` with empty groups → `auth.Group` membership cleared
-- Only own-prefix groups synced (cross-app groups not leaked)
+**Auth flow structure** (same for both clients):
+```
+[REQUIRED] auth-methods-wrapper        ← wraps all ALTERNATIVEs at top level
+    ├── [ALTERNATIVE] Cookie
+    ├── [ALTERNATIVE] IDP Redirector
+    └── [ALTERNATIVE] Forms (username+password)
+[CONDITIONAL] role-check               ← runs after any authentication method
+    ├── [REQUIRED] Condition - User Role (negate=true, role=client.can-login)
+    └── [REQUIRED] Deny Access (deny-access-authenticator)
+```
+
+> **Important**: ALTERNATIVE and CONDITIONAL/REQUIRED executions cannot be mixed at the same top level in Keycloak. All ALTERNATIVEs must be wrapped in a REQUIRED sub-flow first.
+
+**Result**: Django backends have no `verify_claims()` override. Access control is entirely at the Keycloak level for app login, and at the Django group level for route access.
+
+### Phase F — Admin Panel Enhancements ✅
+
+Enhanced `d1/kc_admin/` module:
+
+- **Create User**: now accepts `password` field → sent to Keycloak as `credentials: [{type: password, value: ..., temporary: false}]`
+- **Assign Role**: new `GET /api/roles/` endpoint returns realm roles + d1-client + d2-client client roles. Frontend uses `<select>` dropdown.
+- **Assign Client Role**: new `assign_client_role()` in `client.py` handles client-scoped role assignment
+- **Assign Group**: new `GET /api/groups/` endpoint returns all Keycloak groups. Frontend uses `<select>` dropdown.
+- **Service account permissions**: `d1-client` service account granted `view-clients`, `view-realm`, `query-clients`, `query-realms`, `manage-users`, `view-users`, `query-groups` in `realm-management`
+
+### Phase G — Infrastructure ✅
+
+- `docker-compose.yml`: added volume mounts `./d1:/app` and `./d2:/app` — files update in real-time without `docker cp`
+- `d1/Dockerfile` and `d2/Dockerfile`: changed `--workers 2` to `--workers 1` — eliminates template caching inconsistency across worker processes
+
+### Phase H — Tests ✅
+
+All views have tests covering: authorized group → 200, unauthorized group → redirect to denied, anonymous → redirect to login. Backend tests cover group sync, cross-app isolation, and group removal.

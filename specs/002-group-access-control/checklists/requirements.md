@@ -1,8 +1,9 @@
 # Specification Quality Checklist: Group-Based Access Control
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-06-17
+**Purpose**: Validate specification completeness and quality
+**Created**: 2026-06-17 | **Updated**: 2026-06-18
 **Feature**: [spec.md](../spec.md)
+**Status**: ✅ PASS — all items complete
 
 ## Content Quality
 
@@ -31,32 +32,35 @@
 
 ## Notes
 
-All items pass. Specification is ready for `/speckit-plan`.
+Updated 2026-06-18 to reflect all post-original-spec changes. Spec now covers 14 user stories and 16 functional requirements.
 
-Key observations:
-- 8 user stories covering: D1 RRHH user (P1), D1 Worker user (P1), D1 Admin (P1), D2 Viewer (P2), D2 Editor (P2), D2 Admin (P2), authenticated user with no groups (P3), group change sync (P3)
-- 12 functional requirements, all independently testable
-- 6 measurable success criteria, all technology-agnostic
-- 4 key entities identified (Application Group, Local Group Record, Access Policy, Access Denied Page)
-- 8 assumptions documented, including important clarifications:
-  - Group sync happens only on login (not per-request)
-  - d1:admin ≠ Keycloak realm admin
-  - Users with no groups can still log in but are denied all group-protected pages
-  - Realm export update requires full reset to apply to a running environment
+**Changes from original spec:**
+- Added `d1:data`, `d2:report`, `d2:data`, `admin:data` groups
+- Added D1 `/data/` and D2 `/data/` routes
+- `d2:viewer` no longer grants `/reports/` — replaced by `d2:report`
+- `admin:*` groups now sync in both D1 and D2 (cross-app group support)
+- App-level login control via Keycloak Client Roles + custom Auth Flows (US10)
+- Admin panel: password field, role dropdown, group dropdown (US11, US12)
+- 7 new dedicated test users added
+- Volume mounts and single gunicorn worker documented
 
-Access matrix for reference:
+**Access matrix (current):**
 
-**D1:**
-| Page | d1:rrhh | d1:worker | d1:admin |
-|------|---------|-----------|----------|
-| /home/ | ✓ | ✓ | ✓ |
-| /rrhh/ | ✓ | ✗ | ✓ |
-| /worker/ | ✗ | ✓ | ✓ |
-| /admin/ | ✗ | ✗ | ✓ |
+D1:
+| Route     | d1:rrhh | d1:worker | d1:data | d1:admin | admin:data |
+|-----------|---------|-----------|---------|----------|------------|
+| /home/    | ✓       | ✓         | ✓       | ✓        | ✗          |
+| /rrhh/    | ✓       | ✗         | ✗       | ✓        | ✗          |
+| /worker/  | ✗       | ✓         | ✗       | ✓        | ✗          |
+| /data/    | ✗       | ✗         | ✓       | ✓        | ✓          |
+| /admin/   | ✗       | ✗         | ✗       | ✓        | ✗          |
 
-**D2:**
-| Page | d2:viewer | d2:editor | d2:admin |
-|------|-----------|-----------|----------|
-| /reports/ | ✓ | ✓ | ✓ |
-| /editor/ | ✗ | ✓ | ✓ |
-| /admin/ | ✗ | ✗ | ✓ |
+D2:
+| Route      | d2:report | d2:editor | d2:data | d2:admin | admin:data |
+|------------|-----------|-----------|---------|----------|------------|
+| /reports/  | ✓         | ✗         | ✗       | ✓        | ✗          |
+| /editor/   | ✗         | ✓         | ✗       | ✓        | ✗          |
+| /data/     | ✗         | ✗         | ✓       | ✓        | ✓          |
+| /admin/    | ✗         | ✗         | ✗       | ✓        | ✗          |
+
+**Open task**: T043 — manual verification of group sync on re-login (requires Keycloak admin UI action).

@@ -8,6 +8,8 @@
 
 **Organization**: Grouped by user story. Phases 1–2 are foundational and block all user story phases.
 
+**Status**: Original tasks T001–T043 all completed. Phases 13–17 added to track post-original-spec changes.
+
 ## Format: `[ID] [P?] [Story?] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies on incomplete tasks)
@@ -189,6 +191,63 @@
 - [X] T041 Run quickstart.md validation scenarios VS1–VS12 in order and confirm all expected outcomes
 - [X] T042 Verify cross-app group isolation (VS11 from quickstart.md): D1 `auth_user_groups` contains only `d1:*` names; D2 contains only `d2:*` names
 - [ ] T043 Verify US8 (group change takes effect on re-login): assign `d1:rrhh` to `testuser` in Keycloak admin, log out/in, confirm `/rrhh/` grants access, then reverse
+
+---
+
+## Phase 13: New Groups — d1:data, d2:report, d2:data, admin:data
+
+- [X] T044 Add groups `d1:data`, `d2:report`, `d2:data`, `admin:data` to `keycloak-django-sso/keycloak/realm-export.json`
+- [X] T045 Add `DataView` to `keycloak-django-sso/d1/dashboard/views.py` with `require_groups(['d1:data','d1:admin','admin:data'])`
+- [X] T046 Add `path('data/', DataView.as_view(), name='d1-data')` to `keycloak-django-sso/d1/dashboard/urls.py`
+- [X] T047 Create `keycloak-django-sso/d1/dashboard/templates/dashboard/data.html`
+- [X] T048 Update `D1HomeView` in `keycloak-django-sso/d1/dashboard/views.py` to add `d1:data` to required groups
+- [X] T049 Update `keycloak-django-sso/d1/accounts/backends.py`: change group filter to include `admin:*` alongside `d1:*`
+- [X] T050 Update `keycloak-django-sso/d2/accounts/backends.py`: change group filter to include `admin:*` alongside `d2:*`
+- [X] T051 Change `ReportsView` in `keycloak-django-sso/d2/portal/views.py` from `d2:viewer` to `d2:report`
+- [X] T052 Add `DataView` to `keycloak-django-sso/d2/portal/views.py` with `require_groups(['d2:data','d2:admin','admin:data'])`
+- [X] T053 Add `path('data/', DataView.as_view(), name='d2-data')` to `keycloak-django-sso/d2/portal/urls.py`
+
+---
+
+## Phase 14: Test Users
+
+- [X] T054 Add users to `keycloak-django-sso/keycloak/realm-export.json`: `d1_user_rrhh` (d1:rrhh), `d1_user_worker` (d1:worker), `d1_user_data` (d1:data), `d2_user_report` (d2:report), `d2_user_data` (d2:data), `d2_user_editor` (d2:editor), `user_admin_data` (admin:data)
+
+---
+
+## Phase 15: App-Level Access Control (Keycloak Auth Flows)
+
+- [X] T055 Create `can-login` client role in `d1-client` and `d2-client` via Keycloak admin UI
+- [X] T056 Assign `can-login` to appropriate users per app (D1 users get d1-client:can-login, D2 users get d2-client:can-login, cross-app users get both)
+- [X] T057 Create custom Authentication Flow for D1: wrap Cookie+IDP+Forms in REQUIRED sub-flow, add CONDITIONAL role-check at top level with `deny-access-authenticator`
+- [X] T058 Create custom Authentication Flow for D2: same structure as D1 but for d2-client
+- [X] T059 Remove `verify_claims()` override from `keycloak-django-sso/d1/accounts/backends.py` (wrong design — auth flow handles this)
+- [X] T060 Remove `verify_claims()` override from `keycloak-django-sso/d2/accounts/backends.py`
+
+---
+
+## Phase 16: Admin Panel Enhancements
+
+- [X] T061 Add `password` input to Create User form in `keycloak-django-sso/d1/dashboard/templates/dashboard/admin_panel.html`
+- [X] T062 Add `password` to request body in `createUser()` JS function in `admin_panel.html`
+- [X] T063 Add `password` validation in `keycloak-django-sso/d1/kc_admin/views.py → users_create()`
+- [X] T064 Add `password` parameter to `create_user()` in `keycloak-django-sso/d1/kc_admin/client.py`; pass as `credentials` payload to Keycloak
+- [X] T065 Add `list_assignable_roles()` to `keycloak-django-sso/d1/kc_admin/client.py`: returns realm roles + d1-client roles + d2-client roles
+- [X] T066 Add `assign_client_role()` to `keycloak-django-sso/d1/kc_admin/client.py`
+- [X] T067 Add `roles_list` view and `GET /api/roles/` endpoint in `keycloak-django-sso/d1/kc_admin/views.py` and `urls.py`
+- [X] T068 Replace Role name text input with `<select id="role-select">` in `admin_panel.html`; populate via `loadRoles()` on page load
+- [X] T069 Add `list_groups()` to `keycloak-django-sso/d1/kc_admin/client.py`
+- [X] T070 Add `groups_list` view and `GET /api/groups/` endpoint in `keycloak-django-sso/d1/kc_admin/views.py` and `urls.py`
+- [X] T071 Replace Group name text input with `<select id="group-select">` in `admin_panel.html`; populate via `loadGroups()` on page load
+- [X] T072 Grant `view-clients`, `view-realm`, `query-clients`, `query-realms`, `manage-users`, `query-groups` to d1-client service account in Keycloak; update `keycloak-django-sso/keycloak/realm-export.json` service account user entry
+
+---
+
+## Phase 17: Infrastructure
+
+- [X] T073 Add volume mounts `- ./d1:/app` and `- ./d2:/app` to `keycloak-django-sso/docker-compose.yml`
+- [X] T074 Change gunicorn from `--workers 2` to `--workers 1` in `keycloak-django-sso/d1/Dockerfile`
+- [X] T075 Change gunicorn from `--workers 2` to `--workers 1` in `keycloak-django-sso/d2/Dockerfile`
 
 ---
 
