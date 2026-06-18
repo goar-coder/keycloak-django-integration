@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<div class="denied">
+    <h1>Access Denied</h1>
+    {% if required_scope %}
+        <p>You need the <strong><code>{{ required_scope }}</code></strong> scope to view this page.</p>
+    {% else %}
+        <p>You do not have permission to view this page.</p>
+    {% endif %}
+    {% if user_scopes %}
+        <p>Your current scopes:
+        {% for s in user_scopes %}<span class="scope">{{ s }}</span>{% endfor %}
+        </p>
+    {% else %}
+        <p>Your token has no scopes.</p>
+    {% endif %}
+</div>
+<p><a href="/">← Back to Home</a></p>
+{% endblock %}

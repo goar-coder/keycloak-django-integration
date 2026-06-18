@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D1 App</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; }
+        nav { background: #1a1a2e; color: white; padding: 1rem 2rem; display: flex; gap: 1.5rem; align-items: center; }
+        nav a { color: white; text-decoration: none; }
+        nav a:hover { text-decoration: underline; }
+        .content { padding: 2rem; }
+        .badge { background: #e0e0e0; border-radius: 4px; padding: 2px 8px; margin: 2px; display: inline-block; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+<nav>
+    <strong>D1 App</strong>
+    {% if user.is_authenticated %}
+        <a href="/home/">Inicio</a>
+        <a href="/rrhh/">RRHH</a>
+        <a href="/worker/">Worker</a>
+        <a href="/data/">Data</a>
+        <a href="/admin/">Admin</a>
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/admin-panel/">Panel KC</a>
+        <a href="/logout/">Logout ({{ user.email }})</a>
+    {% else %}
+        <a href="/oidc/authenticate/">Login</a>
+    {% endif %}
+</nav>
+<div class="content">
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

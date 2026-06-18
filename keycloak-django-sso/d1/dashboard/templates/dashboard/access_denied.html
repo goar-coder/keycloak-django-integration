@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h2>Acceso Denegado</h2>
+<p>No tienes el grupo necesario para acceder a esta página.</p>
+{% if required_groups %}
+<p><strong>Grupos requeridos (al menos uno):</strong></p>
+<ul>
+  {% for g in required_groups %}<li><code>{{ g }}</code></li>{% endfor %}
+</ul>
+{% endif %}
+<p><a href="/">Volver al inicio</a></p>
+{% endblock %}

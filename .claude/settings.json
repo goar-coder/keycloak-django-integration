@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "Bash(curl -c /tmp/kc_cookies.txt -b /tmp/kc_cookies.txt -s -L -w '\\\\nHTTP_CODE=%{http_code} FINAL_URL=%{url_effective}\\\\n' http://localhost:8001/oidc/authenticate/)",
+      "Bash(curl -v http://localhost:8080/health/ready)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/realms/master)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/realms/app-realm)",
+      "Bash(rm -f /tmp/cookies.txt)",
+      "Bash(curl -c /tmp/cookies.txt -b /tmp/cookies.txt -s -D - http://localhost:8001/oidc/authenticate/)",
+      "Bash(curl -s -D - \"http://localhost:8080/realms/app-realm/protocol/openid-connect/auth?response_type=code&scope=openid&client_id=d1-client&redirect_uri=http%3A%2F%2Flocalhost%3A8001%2Foidc%2Fcallback%2F&state=test&nonce=test\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:8080/realms/app-realm/protocol/openid-connect/auth?response_type=code&scope=openid+profile&client_id=d1-client&redirect_uri=http%3A%2F%2Flocalhost%3A8001%2Foidc%2Fcallback%2F&state=test&nonce=test\")",
+      "Bash(curl -s -D - \"http://localhost:8080/realms/app-realm/protocol/openid-connect/auth?response_type=code&scope=openid+profile&client_id=d1-client&redirect_uri=http%3A%2F%2Flocalhost%3A8001%2Foidc%2Fcallback%2F&state=test&nonce=test\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/health/ready)",
+      "Bash(docker exec *)",
+      "Bash(curl -s -D - \"http://localhost:8001/oidc/authenticate/\")",
+      "Bash(curl -s -c /tmp/c.txt -b /tmp/c.txt -D - 'http://localhost:8080/realms/app-realm/protocol/openid-connect/auth?response_type=code&scope=openid+email&client_id=d1-client&redirect_uri=http%3A%2F%2Flocalhost%3A8001%2Foidc%2Fcallback%2F&state=test123&nonce=nonce123')"
+    ]
+  }
+}

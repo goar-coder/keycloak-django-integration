@@ -1,0 +1,7 @@
+from .base import *
+
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+OIDC_VERIFY_SSL = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False

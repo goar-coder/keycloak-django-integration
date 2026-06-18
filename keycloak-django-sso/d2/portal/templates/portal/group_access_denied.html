@@ -1,0 +1,15 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<div class="denied">
+  <h2>Acceso Denegado</h2>
+  <p>Tu usuario no tiene el grupo requerido para ver esta página.</p>
+  {% if required_groups %}
+  <p><strong>Grupos requeridos (al menos uno):</strong></p>
+  <ul>
+    {% for g in required_groups %}<li><code>{{ g }}</code></li>{% endfor %}
+  </ul>
+  {% endif %}
+  <p>Nota: esta página comprueba grupos D2 (<code>d2:*</code>), distinto del control de scopes (<a href="/denied/">ver denegación por scope</a>).</p>
+  <p><a href="/">Volver al inicio</a></p>
+</div>
+{% endblock %}

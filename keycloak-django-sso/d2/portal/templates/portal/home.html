@@ -1,0 +1,15 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<h2>Inicio — D2</h2>
+<p>Bienvenido, <strong>{{ user.email }}</strong></p>
+<p><strong>Tus grupos D2:</strong>
+  {% for g in d2_groups %}<span class="scope">{{ g }}</span>{% empty %}ninguno{% endfor %}
+</p>
+<h3>Secciones disponibles</h3>
+<ul>
+  <li><a href="/reports/">Reports</a> — requiere <code>d2:report</code></li>
+  <li><a href="/data/">Data</a> — requiere <code>d2:data</code></li>
+  <li><a href="/editor/">Editor</a> — requiere <code>d2:editor</code> o <code>d2:admin</code></li>
+  <li><a href="/admin/">Admin</a> — requiere <code>d2:admin</code></li>
+</ul>
+{% endblock %}

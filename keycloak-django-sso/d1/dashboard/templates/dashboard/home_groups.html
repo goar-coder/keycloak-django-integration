@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h2>Inicio — D1</h2>
+<p>Bienvenido, <strong>{{ profile.email }}</strong></p>
+<p><strong>Tus grupos D1:</strong>
+  {% for g in d1_groups %}<span class="badge">{{ g }}</span>{% empty %}ninguno{% endfor %}
+</p>
+<h3>Secciones disponibles</h3>
+<ul>
+  <li><a href="/home/">Inicio (todos los grupos D1)</a></li>
+  <li><a href="/rrhh/">RRHH</a> — requiere <code>d1:rrhh</code> o <code>d1:admin</code></li>
+  <li><a href="/worker/">Worker</a> — requiere <code>d1:worker</code> o <code>d1:admin</code></li>
+  <li><a href="/data/">Data</a> — requiere <code>d1:data</code>, <code>d1:admin</code> o <code>admin:data</code></li>
+  <li><a href="/admin/">Admin</a> — requiere <code>d1:admin</code></li>
+</ul>
+{% endblock %}

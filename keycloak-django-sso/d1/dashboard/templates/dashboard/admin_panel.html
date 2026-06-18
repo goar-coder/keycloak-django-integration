@@ -1,0 +1,157 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h1>Keycloak User Management</h1>
+
+<section>
+    <h2>List Users</h2>
+    <button onclick="listUsers()">Load Users</button>
+    <div id="users-result" style="margin-top:1rem;"></div>
+</section>
+
+<hr>
+
+<section>
+    <h2>Create User</h2>
+    <form onsubmit="createUser(event)">
+        <input type="email" id="new-email" placeholder="Email" required>
+        <input type="text" id="new-username" placeholder="Username" required>
+        <input type="password" id="new-password" placeholder="Password" required>
+        <input type="text" id="new-first" placeholder="First name">
+        <input type="text" id="new-last" placeholder="Last name">
+        <button type="submit">Create</button>
+    </form>
+    <div id="create-result"></div>
+</section>
+
+<hr>
+
+<section>
+    <h2>Assign Role</h2>
+    <form onsubmit="assignRole(event)">
+        <input type="text" id="role-sub" placeholder="User sub (UUID)" required>
+        <select id="role-select" required>
+            <option value="">Loading roles…</option>
+        </select>
+        <button type="submit">Assign Role</button>
+    </form>
+    <div id="role-result"></div>
+</section>
+
+<hr>
+
+<section>
+    <h2>Assign Group</h2>
+    <form onsubmit="assignGroup(event)">
+        <input type="text" id="group-sub" placeholder="User sub (UUID)" required>
+        <select id="group-select" required>
+            <option value="">Loading groups…</option>
+        </select>
+        <button type="submit">Assign Group</button>
+    </form>
+    <div id="group-result"></div>
+</section>
+
+<hr>
+
+<section>
+    <h2>Deactivate User</h2>
+    <form onsubmit="deactivateUser(event)">
+        <input type="text" id="deact-sub" placeholder="User sub (UUID)" required>
+        <button type="submit">Deactivate</button>
+    </form>
+    <div id="deact-result"></div>
+</section>
+
+<script>
+const csrf = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+const headers = {'Content-Type': 'application/json', 'X-CSRFToken': csrf};
+
+async function loadRoles() {
+    const select = document.getElementById('role-select');
+    try {
+        const r = await fetch('/api/roles/');
+        const d = await r.json();
+        select.innerHTML = '<option value="">— Select a role —</option>';
+        (d.roles || []).forEach(role => {
+            const opt = document.createElement('option');
+            const label = role.type === 'client' ? `[${role.client}] ${role.name}` : `[realm] ${role.name}`;
+            opt.value = JSON.stringify({name: role.name, type: role.type, client: role.client || ''});
+            opt.textContent = label;
+            select.appendChild(opt);
+        });
+    } catch {
+        select.innerHTML = '<option value="">Error loading roles</option>';
+    }
+}
+
+async function listUsers() {
+    const r = await fetch('/api/users/');
+    const d = await r.json();
+    document.getElementById('users-result').innerHTML = '<pre>' + JSON.stringify(d, null, 2) + '</pre>';
+}
+
+async function createUser(e) {
+    e.preventDefault();
+    const body = {
+        email: document.getElementById('new-email').value,
+        username: document.getElementById('new-username').value,
+        password: document.getElementById('new-password').value,
+        first_name: document.getElementById('new-first').value,
+        last_name: document.getElementById('new-last').value,
+    };
+    const r = await fetch('/api/users/create/', {method: 'POST', headers, body: JSON.stringify(body)});
+    const d = await r.json();
+    document.getElementById('create-result').innerHTML = `<pre>${JSON.stringify(d, null, 2)}</pre>`;
+}
+
+async function assignRole(e) {
+    e.preventDefault();
+    const sub = document.getElementById('role-sub').value;
+    const selected = document.getElementById('role-select').value;
+    if (!selected) return;
+    const {name, type, client} = JSON.parse(selected);
+    const body = {role_name: name, role_type: type, role_client: client};
+    const r = await fetch(`/api/users/${sub}/roles/assign/`, {method: 'POST', headers, body: JSON.stringify(body)});
+    const d = await r.json();
+    document.getElementById('role-result').innerHTML = `<pre>${JSON.stringify(d, null, 2)}</pre>`;
+}
+
+async function loadGroups() {
+    const select = document.getElementById('group-select');
+    try {
+        const r = await fetch('/api/groups/');
+        const d = await r.json();
+        select.innerHTML = '<option value="">— Select a group —</option>';
+        (d.groups || []).forEach(group => {
+            const opt = document.createElement('option');
+            opt.value = group.name;
+            opt.textContent = group.name;
+            select.appendChild(opt);
+        });
+    } catch {
+        select.innerHTML = '<option value="">Error loading groups</option>';
+    }
+}
+
+async function assignGroup(e) {
+    e.preventDefault();
+    const sub = document.getElementById('group-sub').value;
+    const group_name = document.getElementById('group-select').value;
+    if (!group_name) return;
+    const r = await fetch(`/api/users/${sub}/groups/assign/`, {method: 'POST', headers, body: JSON.stringify({group_name})});
+    const d = await r.json();
+    document.getElementById('group-result').innerHTML = `<pre>${JSON.stringify(d, null, 2)}</pre>`;
+}
+
+async function deactivateUser(e) {
+    e.preventDefault();
+    const sub = document.getElementById('deact-sub').value;
+    const r = await fetch(`/api/users/${sub}/deactivate/`, {method: 'POST', headers});
+    const d = await r.json();
+    document.getElementById('deact-result').innerHTML = `<pre>${JSON.stringify(d, null, 2)}</pre>`;
+}
+
+loadRoles();
+loadGroups();
+</script>
+{% endblock %}

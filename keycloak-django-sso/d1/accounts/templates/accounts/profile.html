@@ -1,0 +1,11 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h1>My Profile</h1>
+<table>
+    <tr><th>Keycloak Sub</th><td>{{ profile.sub }}</td></tr>
+    <tr><th>Email</th><td>{{ profile.email }}</td></tr>
+    <tr><th>Roles</th><td>{% for r in profile.roles %}<span class="badge">{{ r }}</span>{% empty %}<em>None</em>{% endfor %}</td></tr>
+    <tr><th>Groups</th><td>{% for g in profile.groups %}<span class="badge">{{ g }}</span>{% empty %}<em>None</em>{% endfor %}</td></tr>
+    <tr><th>Last Synced</th><td>{{ profile.last_synced_at }}</td></tr>
+</table>
+{% endblock %}

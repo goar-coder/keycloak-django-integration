@@ -1,0 +1,19 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<p><strong>Email:</strong> {{ profile.email }}</p>
+<p><strong>Keycloak ID (sub):</strong> {{ profile.sub }}</p>
+<h3>Roles</h3>
+{% if profile.roles %}
+    {% for r in profile.roles %}<span class="badge">{{ r }}</span>{% endfor %}
+{% else %}
+    <p><em>No roles assigned.</em></p>
+{% endif %}
+<h3>Groups</h3>
+{% if profile.groups %}
+    {% for g in profile.groups %}<span class="badge">{{ g }}</span>{% endfor %}
+{% else %}
+    <p><em>No groups assigned.</em></p>
+{% endif %}
+<p style="color:#888;font-size:0.85em;">Last synced: {{ profile.last_synced_at }}</p>
+{% endblock %}

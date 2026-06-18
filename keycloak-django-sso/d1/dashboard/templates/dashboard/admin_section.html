@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h2>Sección Admin — D1</h2>
+<p>Usuario: <strong>{{ profile.email }}</strong></p>
+<p>Acceso exclusivo para grupo: <code>d1:admin</code></p>
+<ul>
+  <li><a href="/home/">Inicio</a></li>
+  <li><a href="/rrhh/">RRHH</a></li>
+  <li><a href="/worker/">Worker</a></li>
+  <li><a href="/admin-panel/">Panel de administración Keycloak</a></li>
+</ul>
+{% endblock %}

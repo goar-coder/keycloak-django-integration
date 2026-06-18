@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D2 Scope Tester</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; }
+        nav { background: #16213e; color: white; padding: 1rem 2rem; display: flex; gap: 1.5rem; align-items: center; }
+        nav a { color: white; text-decoration: none; }
+        nav a:hover { text-decoration: underline; }
+        .content { padding: 2rem; }
+        .scope { background: #d4edda; border-radius: 4px; padding: 2px 8px; margin: 2px; display: inline-block; font-size: 0.85em; }
+        .denied { color: #c00; background: #fdd; padding: 1rem; border-radius: 6px; }
+    </style>
+</head>
+<body>
+<nav>
+    <strong>D2 Scope Tester</strong>
+    {% if user.is_authenticated %}
+        <a href="/">Home</a>
+        <a href="/reports/">Reports</a>
+        <a href="/editor/">Editor</a>
+        <a href="/admin/">Admin</a>
+        <a href="/data/">Data</a>
+        <a href="/logout/">Logout ({{ user.email }})</a>
+    {% else %}
+        <a href="/oidc/authenticate/">Login</a>
+    {% endif %}
+</nav>
+<div class="content">
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>
