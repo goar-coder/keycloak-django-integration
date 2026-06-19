@@ -9,6 +9,7 @@ from dashboard.views import (
     GroupAccessDeniedView,
     HomeView,
     RRHHView,
+    UserProvisionView,
     WorkerView,
 )
 
@@ -22,4 +23,5 @@ urlpatterns = [
     path('worker/', WorkerView.as_view(), name='worker'),
     path('admin/', D1AdminView.as_view(), name='d1-admin'),
     path('data/', DataView.as_view(), name='d1-data'),
+    path('provision/', UserProvisionView.as_view(), name='provision-user'),
 ]

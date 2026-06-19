@@ -1,0 +1,81 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h1>Crear Usuario</h1>
+
+{% if success %}
+<div style="background:#d4edda;border:1px solid #28a745;border-radius:4px;padding:1rem;margin-bottom:1.5rem;color:#155724">
+    <strong>✅ Usuario creado correctamente.</strong>
+    Se ha enviado un enlace de activación a <strong>{{ success_email }}</strong>.
+    El usuario <strong>{{ success_username }}</strong> deberá completar su perfil y establecer su contraseña
+    haciendo clic en el enlace del correo.
+</div>
+{% endif %}
+
+{% if warnings %}
+<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:1rem;margin-bottom:1.5rem;color:#856404">
+    <strong>⚠️ Usuario creado con advertencias:</strong>
+    <ul style="margin:0.5rem 0 0 1rem;padding:0">
+        {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="POST" style="max-width:560px">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div style="background:#f8d7da;border:1px solid #dc3545;border-radius:4px;padding:0.75rem;margin-bottom:1rem;color:#721c24">
+        {% for error in form.non_field_errors %}<p style="margin:0">{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="margin-bottom:1rem">
+        <label for="{{ form.username.id_for_label }}"><strong>Username</strong> *</label><br>
+        {{ form.username }}
+        {% if form.username.errors %}<p style="color:#dc3545;margin:0.25rem 0 0">{{ form.username.errors.0 }}</p>{% endif %}
+    </div>
+
+    <div style="margin-bottom:1rem">
+        <label for="{{ form.email.id_for_label }}"><strong>Email</strong> *</label><br>
+        {{ form.email }}
+        {% if form.email.errors %}<p style="color:#dc3545;margin:0.25rem 0 0">{{ form.email.errors.0 }}</p>{% endif %}
+    </div>
+
+    <div style="margin-bottom:1rem">
+        <label for="{{ form.first_name.id_for_label }}">Nombre</label><br>
+        {{ form.first_name }}
+    </div>
+
+    <div style="margin-bottom:1rem">
+        <label for="{{ form.last_name.id_for_label }}">Apellidos</label><br>
+        {{ form.last_name }}
+    </div>
+
+    <fieldset style="border:1px solid #ccc;border-radius:4px;padding:0.75rem 1rem;margin-bottom:1rem">
+        <legend><strong>Grupos D1</strong> <span style="color:#666;font-size:0.85em">(acceso a D1)</span></legend>
+        {% for choice in form.groups %}
+            {% if choice.data.value in "d1:rrhh,d1:worker,d1:admin" %}
+            <label style="display:block;margin:0.25rem 0">{{ choice.tag }} {{ choice.choice_label }}</label>
+            {% endif %}
+        {% endfor %}
+    </fieldset>
+
+    <fieldset style="border:1px solid #ccc;border-radius:4px;padding:0.75rem 1rem;margin-bottom:1rem">
+        <legend><strong>Grupos D2</strong> <span style="color:#666;font-size:0.85em">(acceso a D2)</span></legend>
+        {% for choice in form.groups %}
+            {% if choice.data.value in "d2:viewer,d2:editor,d2:admin" %}
+            <label style="display:block;margin:0.25rem 0">{{ choice.tag }} {{ choice.choice_label }}</label>
+            {% endif %}
+        {% endfor %}
+    </fieldset>
+
+    <div style="margin-bottom:1.5rem">
+        <label for="{{ form.role.id_for_label }}">Rol (opcional)</label><br>
+        {{ form.role }}
+    </div>
+
+    <button type="submit" style="background:#1a1a2e;color:white;padding:0.6rem 1.4rem;border:none;border-radius:4px;cursor:pointer;font-size:1rem">
+        Crear Usuario y Enviar Correo de Activación
+    </button>
+</form>
+{% endblock %}

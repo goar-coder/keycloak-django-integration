@@ -176,6 +176,40 @@ class KeycloakAdminClient:
         except Exception as exc:
             raise KeycloakConnectionError(str(exc)) from exc
 
+    def provision_user(self, email: str, username: str, first_name: str = '', last_name: str = '') -> str:
+        start = time.monotonic()
+        payload = {
+            'email': email,
+            'username': username,
+            'firstName': first_name,
+            'lastName': last_name,
+            'enabled': True,
+            'emailVerified': False,
+            'requiredActions': ['UPDATE_PASSWORD', 'UPDATE_PROFILE'],
+        }
+        try:
+            user_id = self._get_admin().create_user(payload)
+            self._log('kc_provision_user', username=username, id=user_id, duration_ms=int((time.monotonic() - start) * 1000))
+            return user_id
+        except KeycloakPostError as exc:
+            if exc.response_code == 409:
+                raise DuplicateUser(username) from exc
+            raise KeycloakConnectionError(str(exc)) from exc
+        except Exception as exc:
+            raise KeycloakConnectionError(str(exc)) from exc
+
+    def send_activation_email(self, user_id: str) -> None:
+        start = time.monotonic()
+        try:
+            self._get_admin().send_update_account(
+                user_id=user_id,
+                payload=['UPDATE_PASSWORD', 'UPDATE_PROFILE'],
+            )
+            self._log('kc_send_activation_email', user_id=user_id, duration_ms=int((time.monotonic() - start) * 1000))
+        except Exception as exc:
+            logger.error('action=kc_send_activation_email_error user_id=%s error=%s', user_id, exc)
+            raise KeycloakConnectionError(str(exc)) from exc
+
     def deactivate_user(self, user_id: str) -> None:
         start = time.monotonic()
         try:

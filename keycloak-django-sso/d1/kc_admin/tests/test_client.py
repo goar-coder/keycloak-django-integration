@@ -71,3 +71,44 @@ def test_deactivate_user_raises_user_not_found(client, mock_kc_admin):
     mock_kc_admin.update_user.side_effect = KeycloakPutError(response_code=404)
     with pytest.raises(UserNotFound):
         client.deactivate_user('ghost-uuid')
+
+
+# --- provision_user ---
+
+def test_provision_user_returns_id(client, mock_kc_admin):
+    mock_kc_admin.create_user.return_value = 'prov-uuid'
+    result = client.provision_user('new@ex.com', 'newuser', 'New', 'User')
+    assert result == 'prov-uuid'
+    call_payload = mock_kc_admin.create_user.call_args[0][0]
+    assert call_payload['emailVerified'] is False
+    assert call_payload['requiredActions'] == ['UPDATE_PASSWORD', 'UPDATE_PROFILE']
+    assert 'credentials' not in call_payload or call_payload.get('credentials') == []
+
+
+def test_provision_user_raises_duplicate_on_409(client, mock_kc_admin):
+    from keycloak.exceptions import KeycloakPostError
+    mock_kc_admin.create_user.side_effect = KeycloakPostError(response_code=409)
+    with pytest.raises(DuplicateUser):
+        client.provision_user('dup@ex.com', 'dup')
+
+
+def test_provision_user_raises_connection_error(client, mock_kc_admin):
+    mock_kc_admin.create_user.side_effect = Exception('timeout')
+    with pytest.raises(KeycloakConnectionError):
+        client.provision_user('err@ex.com', 'erruser')
+
+
+# --- send_activation_email ---
+
+def test_send_activation_email_calls_send_update_account(client, mock_kc_admin):
+    client.send_activation_email('user-uuid')
+    mock_kc_admin.send_update_account.assert_called_once_with(
+        user_id='user-uuid',
+        payload=['UPDATE_PASSWORD', 'UPDATE_PROFILE'],
+    )
+
+
+def test_send_activation_email_raises_connection_error(client, mock_kc_admin):
+    mock_kc_admin.send_update_account.side_effect = Exception('smtp down')
+    with pytest.raises(KeycloakConnectionError):
+        client.send_activation_email('user-uuid')
