@@ -49,6 +49,14 @@ def non_admin_client(db):
 @pytest.fixture
 def mock_kc():
     with patch('dashboard.views.kc_client') as m:
+        m.list_groups.return_value = [
+            {'name': 'd1:rrhh', 'id': 'g1'},
+            {'name': 'd1:worker', 'id': 'g2'},
+            {'name': 'd1:admin', 'id': 'g3'},
+            {'name': 'd2:viewer', 'id': 'g4'},
+            {'name': 'd2:editor', 'id': 'g5'},
+            {'name': 'd2:admin', 'id': 'g6'},
+        ]
         m.list_assignable_roles.return_value = []
         yield m
 

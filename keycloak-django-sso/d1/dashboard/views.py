@@ -92,6 +92,13 @@ class DataView(LoginRequiredMixin, TemplateView):
 class UserProvisionView(LoginRequiredMixin, View):
     template_name = 'dashboard/provision_user.html'
 
+    def _get_group_choices(self):
+        try:
+            groups = kc_client.list_groups()
+            return [(g['name'], g['name']) for g in groups]
+        except KeycloakConnectionError:
+            return []
+
     def _get_role_choices(self):
         try:
             roles = kc_client.list_assignable_roles()
@@ -108,18 +115,31 @@ class UserProvisionView(LoginRequiredMixin, View):
         except KeycloakConnectionError:
             return []
 
+    def _form_ctx(self, group_choices, extra=None):
+        has_other = any(
+            not n.startswith('d1:') and not n.startswith('d2:')
+            for n, _ in group_choices
+        )
+        ctx = {'has_other_groups': has_other}
+        if extra:
+            ctx.update(extra)
+        return ctx
+
     def get(self, request):
+        group_choices = self._get_group_choices()
         role_choices = self._get_role_choices()
-        form = UserProvisionForm(role_choices=role_choices)
-        return render(request, self.template_name, {'form': form})
+        form = UserProvisionForm(group_choices=group_choices, role_choices=role_choices)
+        ctx = self._form_ctx(group_choices, {'form': form})
+        return render(request, self.template_name, ctx)
 
     def post(self, request):
+        group_choices = self._get_group_choices()
         role_choices = self._get_role_choices()
-        form = UserProvisionForm(request.POST, role_choices=role_choices)
-        ctx = {'form': form}
+        form = UserProvisionForm(request.POST, group_choices=group_choices, role_choices=role_choices)
+        base_ctx = self._form_ctx(group_choices, {'form': form})
 
         if not form.is_valid():
-            return render(request, self.template_name, ctx)
+            return render(request, self.template_name, base_ctx)
 
         data = form.cleaned_data
         warnings = []
@@ -133,10 +153,10 @@ class UserProvisionView(LoginRequiredMixin, View):
             )
         except DuplicateUser:
             form.add_error(None, 'A user with this username or email already exists in Keycloak.')
-            return render(request, self.template_name, ctx)
+            return render(request, self.template_name, base_ctx)
         except KeycloakConnectionError:
             form.add_error(None, 'Unable to reach identity provider. Please try again.')
-            return render(request, self.template_name, ctx)
+            return render(request, self.template_name, base_ctx)
 
         for group_name in data.get('groups', []):
             try:
@@ -164,12 +184,12 @@ class UserProvisionView(LoginRequiredMixin, View):
                 'The user was created — resend manually from Keycloak.'
             )
 
-        ctx = {
+        ctx = self._form_ctx(group_choices, {
             'success': True,
             'success_email': data['email'],
             'success_username': data['username'],
             'email_sent': email_sent,
             'warnings': warnings,
-            'form': UserProvisionForm(role_choices=role_choices),
-        }
+            'form': UserProvisionForm(group_choices=group_choices, role_choices=role_choices),
+        })
         return render(request, self.template_name, ctx)

@@ -54,7 +54,7 @@
     <fieldset style="border:1px solid #ccc;border-radius:4px;padding:0.75rem 1rem;margin-bottom:1rem">
         <legend><strong>Grupos D1</strong> <span style="color:#666;font-size:0.85em">(acceso a D1)</span></legend>
         {% for choice in form.groups %}
-            {% if choice.data.value in "d1:rrhh,d1:worker,d1:admin" %}
+            {% if "d1:" in choice.data.value %}
             <label style="display:block;margin:0.25rem 0">{{ choice.tag }} {{ choice.choice_label }}</label>
             {% endif %}
         {% endfor %}
@@ -63,11 +63,22 @@
     <fieldset style="border:1px solid #ccc;border-radius:4px;padding:0.75rem 1rem;margin-bottom:1rem">
         <legend><strong>Grupos D2</strong> <span style="color:#666;font-size:0.85em">(acceso a D2)</span></legend>
         {% for choice in form.groups %}
-            {% if choice.data.value in "d2:viewer,d2:editor,d2:admin" %}
+            {% if "d2:" in choice.data.value %}
             <label style="display:block;margin:0.25rem 0">{{ choice.tag }} {{ choice.choice_label }}</label>
             {% endif %}
         {% endfor %}
     </fieldset>
+
+    {% if has_other_groups %}
+    <fieldset style="border:1px solid #ccc;border-radius:4px;padding:0.75rem 1rem;margin-bottom:1rem">
+        <legend><strong>Otros Grupos</strong></legend>
+        {% for choice in form.groups %}
+            {% if "d1:" not in choice.data.value and "d2:" not in choice.data.value %}
+            <label style="display:block;margin:0.25rem 0">{{ choice.tag }} {{ choice.choice_label }}</label>
+            {% endif %}
+        {% endfor %}
+    </fieldset>
+    {% endif %}
 
     <div style="margin-bottom:1.5rem">
         <label for="{{ form.role.id_for_label }}">Rol (opcional)</label><br>
