@@ -16,7 +16,9 @@ services:
       - "5433:5432"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
     command: start-dev --import-realm
     environment:
       KC_DB: postgres
@@ -32,6 +34,11 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_URL: "http://localhost:8080"
       KC_HOSTNAME_ADMIN_URL: "http://localhost:8080"
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:

@@ -334,13 +334,38 @@
       ],
       "d2-client": [
         {
-          "id": "2f790509-eda5-42b9-8179-4a72c37a6c52",
-          "name": "can-login",
-          "description": "Can access D2",
+          "id": "15a16d14-6a1f-4ab8-9d8d-95de6fbcbb86",
+          "name": "auth_loginform",
+          "description": "Password-based authentication flow for D2",
           "composite": false,
           "clientRole": true,
           "containerId": "989f25f6-6840-44eb-9bd8-4e066e68468c",
           "attributes": {}
+        },
+        {
+          "id": "929d488e-7a13-4c13-94c7-4b252075a2c6",
+          "name": "auth_autologin",
+          "description": "Magic-link passwordless authentication flow for D2",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "989f25f6-6840-44eb-9bd8-4e066e68468c",
+          "attributes": {}
+        },
+        {
+          "id": "ea7c6593-17e3-454d-a2c7-8c734a92b7f6",
+          "name": "can-login",
+          "description": "Grants access to D2. Users without this role are denied at the identity-first screen.",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "989f25f6-6840-44eb-9bd8-4e066e68468c"
+        },
+        {
+          "id": "5b404460-8492-46ba-8685-1bdabf6a9692",
+          "name": "auth_oidc",
+          "description": "Generic OIDC-authenticated user role for D2",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "989f25f6-6840-44eb-9bd8-4e066e68468c"
         }
       ],
       "broker": [
@@ -783,7 +808,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "d1-client-dev-secret",
       "redirectUris": [
         "http://localhost:8001/oidc/callback/",
         "http://d1:8000/oidc/callback/"
@@ -894,7 +919,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "d2-client-dev-secret",
       "redirectUris": [
         "http://localhost:8002/oidc/callback/",
         "http://d2:8000/oidc/callback/"
@@ -914,7 +939,9 @@
       "frontchannelLogout": true,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8002/##http://d2:8000/"
+        "post.logout.redirect.uris": "http://localhost:8002/##http://d2:8000/",
+        "client.session.max.lifespan": "28800",
+        "client.session.idle.timeout": "28800"
       },
       "authenticationFlowBindingOverrides": {
         "browser": "e816ce61-53f3-4245-800d-dd70b9370f84"
@@ -1361,7 +1388,17 @@
     "xXSSProtection": "1; mode=block",
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
-  "smtpServer": {},
+  "smtpServer": {
+    "host": "${SMTP_HOST}",
+    "port": "${SMTP_PORT}",
+    "from": "${SMTP_FROM}",
+    "fromDisplayName": "D2 App",
+    "auth": "true",
+    "user": "${SMTP_USER}",
+    "password": "${SMTP_PASSWORD}",
+    "starttls": "true",
+    "ssl": "false"
+  },
   "eventsEnabled": false,
   "eventsListeners": [
     "jboss-logging"
@@ -1627,14 +1664,6 @@
           "priority": 0,
           "autheticatorFlow": true,
           "flowAlias": "d2-client-auth-methods",
-          "userSetupAllowed": false
-        },
-        {
-          "authenticatorFlow": true,
-          "requirement": "CONDITIONAL",
-          "priority": 1,
-          "autheticatorFlow": true,
-          "flowAlias": "d2-client-role-check",
           "userSetupAllowed": false
         }
       ]
@@ -2052,59 +2081,47 @@
       "builtIn": false,
       "authenticationExecutions": [
         {
-          "authenticator": "auth-username-password-form",
+          "authenticator": "auth-username-form",
           "authenticatorFlow": false,
           "requirement": "REQUIRED",
           "priority": 0,
           "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "d2-client-role-check",
+          "requirement": "CONDITIONAL",
+          "priority": 5,
+          "autheticatorFlow": true
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 10,
+          "autheticatorFlow": true,
+          "flowAlias": "d2-password-branch",
           "userSetupAllowed": false
         },
         {
           "authenticatorFlow": true,
           "requirement": "CONDITIONAL",
-          "priority": 1,
+          "priority": 20,
           "autheticatorFlow": true,
-          "flowAlias": "d2-client-otp",
+          "flowAlias": "d2-magic-link-branch",
           "userSetupAllowed": false
         }
       ]
     },
     {
-      "id": "f19663e0-3acb-4470-ab54-ae48ce8f1d21",
-      "alias": "d2-client-otp",
+      "id": "3ebcc9d9-b3da-469c-9d9a-4e78f7b1f977",
+      "alias": "d2-password-branch",
       "description": "",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
       "authenticationExecutions": [
         {
-          "authenticator": "conditional-user-configured",
-          "authenticatorFlow": false,
-          "requirement": "REQUIRED",
-          "priority": 0,
-          "autheticatorFlow": false,
-          "userSetupAllowed": false
-        },
-        {
-          "authenticator": "auth-otp-form",
-          "authenticatorFlow": false,
-          "requirement": "REQUIRED",
-          "priority": 1,
-          "autheticatorFlow": false,
-          "userSetupAllowed": false
-        }
-      ]
-    },
-    {
-      "id": "5025dcc1-e1db-410c-a637-9d9e033a1cd6",
-      "alias": "d2-client-role-check",
-      "description": "",
-      "providerId": "basic-flow",
-      "topLevel": false,
-      "builtIn": false,
-      "authenticationExecutions": [
-        {
-          "authenticatorConfig": "d2-client-role-cfg",
+          "authenticatorConfig": "d2-password-role-cfg",
           "authenticator": "conditional-user-role",
           "authenticatorFlow": false,
           "requirement": "REQUIRED",
@@ -2113,10 +2130,38 @@
           "userSetupAllowed": false
         },
         {
-          "authenticator": "deny-access-authenticator",
+          "authenticator": "auth-password-form",
           "authenticatorFlow": false,
           "requirement": "REQUIRED",
-          "priority": 1,
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "596461fe-4ec2-42bb-adc2-45c4fcb8b43c",
+      "alias": "d2-magic-link-branch",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "d2-magic-role-cfg",
+          "authenticator": "conditional-user-role",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorConfig": "d2-magic-link-cfg",
+          "authenticator": "ext-magic-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
           "autheticatorFlow": false,
           "userSetupAllowed": false
         }
@@ -2347,6 +2392,29 @@
           "userSetupAllowed": false
         }
       ]
+    },
+    {
+      "id": "e255d7e2-eee9-4d0b-a587-6c0f4c8ff3f3",
+      "alias": "d2-client-role-check",
+      "description": "Denies access if the user does not have the d2-client can-login role.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "d2-client-role-cfg",
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false
+        }
+      ]
     }
   ],
   "authenticatorConfig": [
@@ -2382,26 +2450,44 @@
       }
     },
     {
-      "id": "1e3e589e-aa3d-4586-8529-3aacf63801af",
-      "alias": "d2-client-role-cfg",
-      "config": {
-        "condUserRole": "d2-client.can-login",
-        "negate": "true"
-      }
-    },
-    {
-      "id": "62ddebca-81ec-497e-b002-94092ad80da2",
-      "alias": "d2-client-role-config",
-      "config": {
-        "condUserRole": "d2-client.can-login",
-        "negate": "true"
-      }
-    },
-    {
       "id": "73318de3-697f-4f25-bbde-e80af6388ad8",
       "alias": "review profile config",
       "config": {
         "update.profile.on.first.login": "missing"
+      }
+    },
+    {
+      "id": "43c74e48-9d50-44e2-a73c-adef506a7ccc",
+      "alias": "d2-password-role-cfg",
+      "config": {
+        "condUserRole": "d2-client.auth_loginform",
+        "negate": "false"
+      }
+    },
+    {
+      "id": "904e29db-121c-4694-975d-846713c01eae",
+      "alias": "d2-magic-role-cfg",
+      "config": {
+        "condUserRole": "d2-client.auth_autologin",
+        "negate": "false"
+      }
+    },
+    {
+      "id": "cef3e320-ab87-45b4-8eee-580826fa73dc",
+      "alias": "d2-magic-link-cfg",
+      "config": {
+        "expirationInSeconds": "3600",
+        "singleUse": "true",
+        "sendEmailOnError": "false",
+        "redirectUriTemplate": "http://localhost:8002/oidc/callback/"
+      }
+    },
+    {
+      "id": "73932019-f7d6-49c1-9d86-959e7d5f925e",
+      "alias": "d2-client-role-cfg",
+      "config": {
+        "condUserRole": "d2-client.can-login",
+        "negate": "true"
       }
     }
   ],
@@ -2521,7 +2607,8 @@
     "oauth2DevicePollingInterval": "5",
     "parRequestUriLifespan": "60",
     "cibaInterval": "5",
-    "realmReusableOtpCode": "false"
+    "realmReusableOtpCode": "false",
+    "userProfileConfig": "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
   },
   "keycloakVersion": "24.0.5",
   "userManagedAccessAllowed": false,
