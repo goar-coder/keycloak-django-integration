@@ -113,5 +113,36 @@ services:
       retries: 5
       start_period: 20s
 
+  d3:
+    build: ./d3
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./d3:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      D3_SECRET_KEY: ${D3_SECRET_KEY}
+      D3_DATABASE_URL: postgres://d3_user:${D3_DB_PASSWORD}@postgres:5432/d3_db
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL:-http://keycloak:8080}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-app-realm}
+      D3_OIDC_CLIENT_ID: ${D3_OIDC_CLIENT_ID:-d3-client}
+      D3_OIDC_CLIENT_SECRET: ${D3_OIDC_CLIENT_SECRET}
+      D3_REDIRECT_URI: ${D3_REDIRECT_URI:-http://localhost:8003/oidc/callback/}
+      ALLOWED_HOSTS: localhost,d3
+      DEBUG: "True"
+    ports:
+      - "8003:8000"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   postgres_data:

@@ -466,6 +466,16 @@
           "containerId": "295ed89d-5c61-4f9c-804b-9afaa0827208",
           "attributes": {}
         }
+      ],
+      "d3-client": [
+        {
+          "id": "aedb30ec-1d87-43a5-ac4d-4ba0aaeee665",
+          "name": "can-login",
+          "description": "Permite al usuario acceder a D3",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "5ab2ed9f-631d-4c1d-a0a9-a29f8098f800"
+        }
       ]
     }
   },
@@ -577,6 +587,30 @@
       "attributes": {},
       "realmRoles": [],
       "clientRoles": {}
+    },
+    {
+      "id": "4b6bb533-8d9b-4efc-9a9a-947dba43008e",
+      "name": "d3:normas",
+      "path": "/d3:normas",
+      "subGroups": []
+    },
+    {
+      "id": "50f027a2-cfdf-43f4-a4d3-e40973f060e6",
+      "name": "d3:documentos",
+      "path": "/d3:documentos",
+      "subGroups": []
+    },
+    {
+      "id": "22d0de0c-244d-4234-924b-6071095867d4",
+      "name": "d3:leyes",
+      "path": "/d3:leyes",
+      "subGroups": []
+    },
+    {
+      "id": "8da75b0f-7e59-4fa9-95dd-8221db7b9ba8",
+      "name": "d3:admin",
+      "path": "/d3:admin",
+      "subGroups": []
     }
   ],
   "defaultRole": {
@@ -1061,6 +1095,105 @@
       ],
       "defaultClientScopes": [],
       "optionalClientScopes": []
+    },
+    {
+      "id": "5ab2ed9f-631d-4c1d-a0a9-a29f8098f800",
+      "clientId": "d3-client",
+      "name": "D3 Client",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "secret": "d3-client-dev-secret",
+      "redirectUris": [
+        "http://localhost:8003/oidc/callback/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8003"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8003/"
+      },
+      "authenticationFlowBindingOverrides": {
+        "browser": "a14bbbc7-d1e3-4e68-8287-ca9f8fa1f3dc"
+      },
+      "protocolMappers": [
+        {
+          "name": "Client ID",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "client_id",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "client_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "Client Host",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "clientHost",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "clientHost",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups"
+          }
+        },
+        {
+          "name": "Client IP Address",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "clientAddress",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "clientAddress",
+            "jsonType.label": "String"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
     }
   ],
   "clientScopes": [
@@ -2415,6 +2548,145 @@
           "autheticatorFlow": false
         }
       ]
+    },
+    {
+      "id": "a14bbbc7-d1e3-4e68-8287-ca9f8fa1f3dc",
+      "alias": "D3 Browser Flow",
+      "description": "Browser flow for D3 with can-login role check",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorFlow": true,
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "flowAlias": "d3-client-auth-methods",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 1,
+          "flowAlias": "d3-client-role-check",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "4b6c98f7-8104-4fec-9ee6-e1a18eb3e592",
+      "alias": "d3-client-auth-methods",
+      "description": "D3 auth methods: cookie, spnego, IdP redirect, forms",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 0,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-spnego",
+          "requirement": "DISABLED",
+          "priority": 1,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE",
+          "priority": 2,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 3,
+          "flowAlias": "d3-client-forms",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "031153f8-c752-428b-84c5-ad73feec1bb1",
+      "alias": "d3-client-forms",
+      "description": "Combined username+password form for D3",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 1,
+          "flowAlias": "d3-client-otp",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "db9b4017-0406-448c-aabe-0e7d83d1ef05",
+      "alias": "d3-client-otp",
+      "description": "D3 OTP conditional",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "REQUIRED",
+          "priority": 1,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    },
+    {
+      "id": "7f892c3d-1f22-4c79-8932-b9030849109a",
+      "alias": "d3-client-role-check",
+      "description": "Denies access if user does not have d3-client.can-login",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "d3-client-role-cfg",
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "priority": 1,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
     }
   ],
   "authenticatorConfig": [
@@ -2487,6 +2759,14 @@
       "alias": "d2-client-role-cfg",
       "config": {
         "condUserRole": "d2-client.can-login",
+        "negate": "true"
+      }
+    },
+    {
+      "id": "f63ed07c-7cf5-4ba1-b2de-4fc19614e8c6",
+      "alias": "d3-client-role-cfg",
+      "config": {
+        "condUserRole": "d3-client.can-login",
         "negate": "true"
       }
     }

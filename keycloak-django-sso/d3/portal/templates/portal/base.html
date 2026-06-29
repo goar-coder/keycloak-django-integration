@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}D3 App{% endblock %}</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 0; }
+  nav { background: #1a2e1a; color: white; padding: 1rem 2rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+  nav strong { margin-right: 0.5rem; }
+  nav a { color: white; text-decoration: none; }
+  nav a:hover { text-decoration: underline; }
+  .content { padding: 2rem; }
+  .badge { background: #e0e0e0; border-radius: 4px; padding: 2px 8px; margin: 2px; display: inline-block; font-size: 0.85em; }
+</style>
+</head>
+<body>
+<nav>
+  <strong>D3 App</strong>
+  {% if user.is_authenticated %}
+    <a href="/">Inicio</a>
+    <a href="/normas/">Normas</a>
+    <a href="/documentos/">Documentos</a>
+    <a href="/leyes/">Leyes</a>
+    <a href="/profile/">Perfil</a>
+    <a href="{% url 'logout' %}">Logout ({{ user.email }})</a>
+  {% else %}
+    <a href="/oidc/authenticate/">Login</a>
+  {% endif %}
+</nav>
+<div class="content">
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>

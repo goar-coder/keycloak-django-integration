@@ -1,0 +1,37 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Inicio — D3{% endblock %}
+
+{% block content %}
+<h1>Portal D3</h1>
+<p>Bienvenido. Accede a las secciones disponibles según tus permisos.</p>
+<div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:24px;">
+  <div style="border:1px solid #ddd; border-radius:8px; padding:20px; width:200px; {% if not has_normas %}color:#999;{% endif %}">
+    <strong>Normas</strong>
+    <p style="margin:8px 0;">Normativa vigente</p>
+    {% if has_normas %}
+      <a href="{% url 'normas' %}" style="color:#0066cc; text-decoration:none; font-weight:bold;">Acceder →</a>
+    {% else %}
+      <span>Sin acceso</span>
+    {% endif %}
+  </div>
+  <div style="border:1px solid #ddd; border-radius:8px; padding:20px; width:200px; {% if not has_documentos %}color:#999;{% endif %}">
+    <strong>Documentos</strong>
+    <p style="margin:8px 0;">Repositorio de documentos</p>
+    {% if has_documentos %}
+      <a href="{% url 'documentos' %}" style="color:#0066cc; text-decoration:none; font-weight:bold;">Acceder →</a>
+    {% else %}
+      <span>Sin acceso</span>
+    {% endif %}
+  </div>
+  <div style="border:1px solid #ddd; border-radius:8px; padding:20px; width:200px; {% if not has_leyes %}color:#999;{% endif %}">
+    <strong>Leyes</strong>
+    <p style="margin:8px 0;">Marco legal</p>
+    {% if has_leyes %}
+      <a href="{% url 'leyes' %}" style="color:#0066cc; text-decoration:none; font-weight:bold;">Acceder →</a>
+    {% else %}
+      <span>Sin acceso</span>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

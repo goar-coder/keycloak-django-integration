@@ -1,0 +1,16 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Acceso denegado — D3{% endblock %}
+
+{% block content %}
+<div style="max-width:500px; margin:40px auto; text-align:center;">
+  <div style="font-size:64px;">🔒</div>
+  <h1 style="color:#cc0000;">Acceso denegado</h1>
+  <p>No tienes permiso para acceder a esta sección.</p>
+  {% if required_group %}
+    <p>Se requiere pertenecer al grupo:</p>
+    <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:8px 16px; display:inline-block; margin:8px 0; font-family:monospace;">{{ required_group }}</div>
+  {% endif %}
+  <p><a href="/">← Volver al inicio</a></p>
+</div>
+{% endblock %}
