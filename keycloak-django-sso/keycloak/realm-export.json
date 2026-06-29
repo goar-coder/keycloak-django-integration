@@ -1798,6 +1798,14 @@
           "autheticatorFlow": true,
           "flowAlias": "d2-client-auth-methods",
           "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 10,
+          "autheticatorFlow": true,
+          "flowAlias": "d2-client-role-check",
+          "userSetupAllowed": false
         }
       ]
     },
@@ -2220,12 +2228,6 @@
           "priority": 0,
           "autheticatorFlow": false,
           "userSetupAllowed": false
-        },
-        {
-          "flowAlias": "d2-client-role-check",
-          "requirement": "CONDITIONAL",
-          "priority": 5,
-          "autheticatorFlow": true
         },
         {
           "authenticatorFlow": true,
